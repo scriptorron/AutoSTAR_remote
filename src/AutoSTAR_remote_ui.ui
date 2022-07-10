@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>315</width>
+    <height>475</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <layout class="QGridLayout" name="gridLayout">
+    <item row="9" column="1">
+     <widget class="QPushButton" name="pushButton_Help">
+      <property name="text">
+       <string>?</string>
+      </property>
+      <property name="shortcut">
+       <string>?</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="1">
+     <widget class="QPushButton" name="pushButton_Num5">
+      <property name="text">
+       <string>5</string>
+      </property>
+      <property name="shortcut">
+       <string>5</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="2">
+     <widget class="QPushButton" name="pushButton_Num9">
+      <property name="text">
+       <string>9</string>
+      </property>
+      <property name="shortcut">
+       <string>9</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="0">
+     <widget class="QPushButton" name="pushButton_Num4">
+      <property name="text">
+       <string>4</string>
+      </property>
+      <property name="shortcut">
+       <string>4</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="1">
+     <widget class="QPushButton" name="pushButton_Num8">
+      <property name="text">
+       <string>8</string>
+      </property>
+      <property name="shortcut">
+       <string>8</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="2">
+     <widget class="QPushButton" name="pushButton_ScrollDown">
+      <property name="text">
+       <string>down</string>
+      </property>
+      <property name="shortcut">
+       <string>PgDown</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="1">
+     <widget class="QPushButton" name="pushButton_Num0">
+      <property name="text">
+       <string>0</string>
+      </property>
+      <property name="shortcut">
+       <string>0</string>
+      </property>
+     </widget>
+    </item>
+    <item row="6" column="2">
+     <widget class="QPushButton" name="pushButton_Num6">
+      <property name="text">
+       <string>6</string>
+      </property>
+      <property name="shortcut">
+       <string>6</string>
+      </property>
+     </widget>
+    </item>
+    <item row="9" column="0">
+     <widget class="QPushButton" name="pushButton_ScrollUp">
+      <property name="text">
+       <string>up</string>
+      </property>
+      <property name="shortcut">
+       <string>PgUp</string>
+      </property>
+     </widget>
+    </item>
+    <item row="7" column="0">
+     <widget class="QPushButton" name="pushButton_Num7">
+      <property name="text">
+       <string>7</string>
+      </property>
+      <property name="shortcut">
+       <string>7</string>
+      </property>
+     </widget>
+    </item>
+    <item row="0" column="0" colspan="3">
+     <widget class="QPlainTextEdit" name="plainTextEdit_LCD">
+      <property name="font">
+       <font>
+        <pointsize>10</pointsize>
+       </font>
+      </property>
+      <property name="readOnly">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="1">
+     <widget class="QPushButton" name="pushButton_Mode">
+      <property name="text">
+       <string>MODE</string>
+      </property>
+      <property name="shortcut">
+       <string>Esc</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="2">
+     <widget class="QPushButton" name="pushButton_Goto">
+      <property name="text">
+       <string>GO TO</string>
+      </property>
+      <property name="shortcut">
+       <string>Home</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="2">
+     <widget class="QPushButton" name="pushButton_East">
+      <property name="text">
+       <string>&gt;</string>
+      </property>
+      <property name="shortcut">
+       <string>Right</string>
+      </property>
+     </widget>
+    </item>
+    <item row="4" column="1">
+     <widget class="QPushButton" name="pushButton_South">
+      <property name="text">
+       <string>v</string>
+      </property>
+      <property name="shortcut">
+       <string>Down</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="0">
+     <widget class="QPushButton" name="pushButton_Num1">
+      <property name="text">
+       <string>1</string>
+      </property>
+      <property name="shortcut">
+       <string>1</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="1">
+     <widget class="QPushButton" name="pushButton_Num2">
+      <property name="text">
+       <string>2</string>
+      </property>
+      <property name="shortcut">
+       <string>2</string>
+      </property>
+     </widget>
+    </item>
+    <item row="5" column="2">
+     <widget class="QPushButton" name="pushButton_Num3">
+      <property name="text">
+       <string>3</string>
+      </property>
+      <property name="shortcut">
+       <string>3</string>
+      </property>
+     </widget>
+    </item>
+    <item row="1" column="0">
+     <widget class="QPushButton" name="pushButton_Enter">
+      <property name="text">
+       <string>ENTER</string>
+      </property>
+      <property name="shortcut">
+       <string>Return</string>
+      </property>
+     </widget>
+    </item>
+    <item row="3" column="0">
+     <widget class="QPushButton" name="pushButton_West">
+      <property name="text">
+       <string>&lt;</string>
+      </property>
+      <property name="shortcut">
+       <string>Left</string>
+      </property>
+     </widget>
+    </item>
+    <item row="2" column="1">
+     <widget class="QPushButton" name="pushButton_North">
+      <property name="text">
+       <string>^</string>
+      </property>
+      <property name="shortcut">
+       <string>Up</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="0">
+     <widget class="QPushButton" name="pushButton_Back">
+      <property name="text">
+       <string>BACK</string>
+      </property>
+     </widget>
+    </item>
+    <item row="8" column="2">
+     <widget class="QPushButton" name="pushButton_Fwd">
+      <property name="text">
+       <string>FWD</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="1">
+     <widget class="QPushButton" name="pushButton_FocIn">
+      <property name="text">
+       <string>Focus in</string>
+      </property>
+      <property name="shortcut">
+       <string>+</string>
+      </property>
+     </widget>
+    </item>
+    <item row="10" column="2">
+     <widget class="QPushButton" name="pushButton_FocOut">
+      <property name="text">
+       <string>Focus out</string>
+      </property>
+      <property name="shortcut">
+       <string>-</string>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>315</width>
+     <height>26</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuTelescope">
+    <property name="enabled">
+     <bool>true</bool>
+    </property>
+    <property name="title">
+     <string>Telescope</string>
+    </property>
+    <addaction name="actionconnect"/>
+    <addaction name="actiondisconnect"/>
+   </widget>
+   <widget class="QMenu" name="menuDisplay">
+    <property name="title">
+     <string>LCD</string>
+    </property>
+    <addaction name="actionpoll"/>
+    <addaction name="actionupdate_now"/>
+   </widget>
+   <addaction name="menuTelescope"/>
+   <addaction name="menuDisplay"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionselect">
+   <property name="text">
+    <string>select</string>
+   </property>
+  </action>
+  <action name="actionconnect">
+   <property name="enabled">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>connect</string>
+   </property>
+  </action>
+  <action name="actiondisconnect">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>disconnect</string>
+   </property>
+  </action>
+  <action name="actionpoll">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>poll</string>
+   </property>
+  </action>
+  <action name="actionupdate_now">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="text">
+    <string>update now</string>
+   </property>
+  </action>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
