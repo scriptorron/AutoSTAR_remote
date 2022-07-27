@@ -9,10 +9,11 @@ import win32com.client
 
 import AutoSTAR_remote_ui
 
-version = "V1.0"
+version = "V1.0.1"
 
 theme_selection = "Dark" # "Dark", "Light"
 LCD_polling_time = 1000 # milliseconds
+LCD_earlyUpdate_time = 200 # milliseconds
 
 """
 By watching the RS232 communication of the AutoStart Suit telescope control I found the following commands: 
@@ -135,7 +136,9 @@ class MainWin(QtWidgets.QMainWindow):
             self.ui.actiondisconnect.setEnabled(True)
             self.ui.centralwidget.setEnabled(True)
             if self.ui.actionpoll.isChecked():
-                self.PollingTimer.start()
+                if not self.PollingTimer.isActive():
+                    self.PollingTimer.setInterval(LCD_earlyUpdate_time)
+                    self.PollingTimer.start()
             self.ui.actionupdate_now.setEnabled(True)
 
     @QtCore.pyqtSlot()
@@ -158,7 +161,13 @@ class MainWin(QtWidgets.QMainWindow):
     def sendCommandBlind(self, cmd):
         if self.Telescope is not None:
             if self.Telescope.Connected:
-                return self.Telescope.CommandBlind(cmd, False)
+                try:
+                    ret = self.Telescope.CommandBlind(cmd, False)
+                except win32com.client.pywintypes.com_error as e:
+                    print(f'sendCommandBlind: {e}')
+                    return None
+                else:
+                    return ret
         return None
 
     def buttonAction(self, cmd, long_cmd=None):
@@ -172,9 +181,12 @@ class MainWin(QtWidgets.QMainWindow):
             self.sendCommandBlind(long_cmd)
         else:
             self.sendCommandBlind(cmd)
-        self.updateLCD()
+        # delayed LCD update
+        self.PollingTimer.stop()
+        self.PollingTimer.setInterval(LCD_earlyUpdate_time)
+        self.PollingTimer.start()
 
-    # The :ED# command sends the LCD contents, coded withthe char table of the SED1233 LCD controller.
+    # The :ED# command sends the LCD contents, coded with the char table of the SED1233 LCD controller.
     # For any reason the COM interface or the win32com transforms this into unicode. Unfortunately the
     # special characters of the SED1233 controller get mapped to the wrong unicode. Here we fix this
     # with a translation table:
@@ -197,8 +209,14 @@ class MainWin(QtWidgets.QMainWindow):
     }
 
     def updateLCD(self):
-        #LcdText = self.sendAction("readdisplay")
-        LcdText = self.Telescope.CommandString("ED", False)
+        try:
+            LcdText = self.Telescope.CommandString("ED", False)
+        except win32com.client.pywintypes.com_error as e:
+            # Sometimes the handbox needs long time for calculations and does not
+            # send the LCD contents bfore the ASCOM driver trows a timeout exception.
+            # Here we catch these timeout exceptions.
+            print(f'updateLCD: {e}')
+            LcdText = None
         if LcdText is not None:
             LcdText = LcdText.translate(self.CharacterTranslationTable)
             Unknown = ord(LcdText[0])
@@ -209,7 +227,9 @@ class MainWin(QtWidgets.QMainWindow):
             #print(", ".join([f'{ord(c):02X}' for c in LcdText]))
             #print(bytes(LcdText, 'utf-8'))
         if self.ui.actionpoll.isChecked():
-            self.PollingTimer.start()
+            if not self.PollingTimer.isActive():
+                self.PollingTimer.setInterval(LCD_polling_time)
+                self.PollingTimer.start()
 
     @QtCore.pyqtSlot()
     def on_actionupdate_now_triggered(self):
@@ -219,7 +239,7 @@ class MainWin(QtWidgets.QMainWindow):
     def on_actionpoll_toggled(self, isChecked):
         if isChecked:
             # start polling timer
-            self.PollingTimer.start()
+            self.updateLCD()
         else:
             # stop polling timer
             self.PollingTimer.stop()
