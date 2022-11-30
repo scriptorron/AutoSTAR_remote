@@ -8,9 +8,15 @@ import win32com.client
 
 class ASCOM:
 
-    def __init__(self):
+    def __init__(self, showDebugMessages=False):
         self.Telescope = None
         self.Name = ""
+        #
+        self.showDebugMessages = showDebugMessages
+
+    def dbgMsg(self, msg):
+        if self.showDebugMessages:
+            print(f'DEBUG: {msg}')
 
     def open(self):
         self.close()
@@ -48,10 +54,11 @@ class ASCOM:
 
     def sendCommandBlind(self, cmd):
         if self.is_open():
+            self.dbgMsg(f'sendCommandBlind: {cmd}')
             try:
                 ret = self.Telescope.CommandBlind(cmd, False)
             except win32com.client.pywintypes.com_error as e:
-                print(f'sendCommandBlind: {e}')
+                print(f'ERROR in sendCommandBlind: {e}')
                 return None
             else:
                 return ret
@@ -88,6 +95,6 @@ class ASCOM:
                 # send the LCD contents before the ASCOM driver trows a timeout exception.
                 # Here we catch these timeout exceptions.
                 print(f'ERROR in get_LCD: {e}')
-            #print(f'sendCommandString response: {Response}')
+            self.dbgMsg(f'get_LCD response: ED --> {Response}')
             return Response[1:].translate(self.CharacterTranslationTable)
         return None

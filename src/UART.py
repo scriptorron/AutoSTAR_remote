@@ -14,7 +14,7 @@ import UART_ui
 
 class UART(QtWidgets.QDialog):
 
-    def __init__(self, Parameter={}):
+    def __init__(self, Parameter={}, showDebugMessages=False):
         super().__init__()
         self.ui = UART_ui.Ui_Dialog()
         self.ui.setupUi(self)
@@ -37,6 +37,12 @@ class UART(QtWidgets.QDialog):
         # no port opened
         self.PortHandle = None
         self.Name = ""
+        #
+        self.showDebugMessages = showDebugMessages
+
+    def dbgMsg(self, msg):
+        if self.showDebugMessages:
+            print(f'DEBUG: {msg}')
 
     def get_Parameter(self):
         Parameter = {
@@ -117,20 +123,22 @@ class UART(QtWidgets.QDialog):
             # Attempting manual bypass of prompts
             for i in range(10):
                 self.sendCommandBlind("EK9")
-                self.sendCommandString("ED")
+                self.get_LCD()
             # set date and time
             if self.ui.checkBox_SetTimeDate.isChecked():
                 # TODO: make this aware of the daylight saving setting of the controller!
                 now = datetime.datetime.now()
                 time = now.strftime("%H:%M:%S")
-                self.PortHandle.write(f'#:SL{time}#'.encode("ascii"))
+                cmd = f'#:SL{time}#'.encode("ascii")
+                self.PortHandle.write(cmd)
                 Response = self.PortHandle.read(size=1)
-                print(f'DBG: #:SL{time}# --> {Response}')
+                self.dbgMsg(f'{cmd} --> {Response}')
                 # MM/DD/YY
-                date = now.strftime("%m/%d/%y")
-                self.PortHandle.write(f'#:SC{date}#'.encode("ascii"))
-                Response = self.PortHandle.read(size=1)
-                print(f'DBG: #:SC{date}# --> {Response}')
+                date = now.strftime("%m.%d.%y")
+                cmd = f'#:SC{date}#'.encode("ascii")
+                self.PortHandle.write(cmd)
+                Response = self.PortHandle.read(size=66)
+                self.dbgMsg(f'{cmd} --> {Response}')
 
     def is_open(self):
         if self.PortHandle is not None:
@@ -148,6 +156,8 @@ class UART(QtWidgets.QDialog):
         if self.is_open():
             MeadeCmd = f'#:{cmd}#'.encode("ascii")
             self.PortHandle.write(MeadeCmd)
+            self.PortHandle.flush()
+            self.dbgMsg(f'sendCommandBlind: {MeadeCmd}')
 
     # The :ED# command sends the LCD contents, coded with the char table of the SED1233 LCD controller.
     # For any reason the COM interface or the win32com transforms this into unicode. Unfortunately the
@@ -174,10 +184,10 @@ class UART(QtWidgets.QDialog):
     def get_LCD(self):
         if self.is_open():
             MeadeCmd = b'#:ED#'
-            #print(f'sendCommandString command: {MeadeCmd}')
             self.PortHandle.write(MeadeCmd)
+            self.PortHandle.flush()
             Response = self.PortHandle.read_until(b"#")
-            print(f'DBG: get_LCD response: {Response}')
+            self.dbgMsg(f'get_LCD response: {MeadeCmd} --> {Response}')
             Response = Response[1:].rstrip(b"#")
             Response = Response.decode("latin-1")
             return Response.translate(self.CharacterTranslationTable)

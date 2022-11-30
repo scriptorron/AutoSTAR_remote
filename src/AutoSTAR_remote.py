@@ -21,7 +21,7 @@ version = "V1.1.0"
 
 theme_selection = "Dark"  # "Dark", "Light"
 LCD_polling_time = 1000  # milliseconds
-LCD_earlyUpdate_time = 200  # milliseconds
+LCD_earlyUpdate_time = 50  # milliseconds
 
 """
 By watching the RS232 communication of the AutoStart Suit telescope control I found the following commands: 
@@ -58,6 +58,8 @@ By watching the RS232 communication of the AutoStart Suit telescope control I fo
 """
 
 """
+How the ASCOM driver sets time and date:
+
 21:06:26.686 UTCDate                   Set - 11.22.22 20:06:26
 21:06:26.686 SendString                Transmitting #:GG#
 21:06:26.704 SendString                Received -01
@@ -73,8 +75,9 @@ class MainWin(QtWidgets.QMainWindow):
     AutoSTAR_remote main window.
     """
 
-    def __init__(self):
+    def __init__(self, showDebugMessages=False):
         super(MainWin, self).__init__()
+        self.showDebugMessages = showDebugMessages
         self.ui = AutoSTAR_remote_ui.Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle(f'AutoSTAR_remote {version}')
@@ -87,7 +90,7 @@ class MainWin(QtWidgets.QMainWindow):
         self.Interface = None
         # persistent settings
         self.Settings = QtCore.QSettings()
-        print(f'QSettings file: {self.Settings.fileName()}')
+        self.dbgMsg(f'QSettings file: {self.Settings.fileName()}')
         # LCD polling timer
         self.PollingTimer = QtCore.QTimer()
         self.PollingTimer.setSingleShot(True)
@@ -127,6 +130,10 @@ class MainWin(QtWidgets.QMainWindow):
         self.ui.pushButton_FocOut.pressed.connect(lambda: self.sendCommandBlind("F+"))
         self.ui.pushButton_FocOut.released.connect(lambda: self.sendCommandBlind("FQ"))
 
+    def dbgMsg(self, msg):
+        if self.showDebugMessages:
+            print(f'DEBUG: {msg}')
+
     @QtCore.pyqtSlot()
     def closeEvent(self, event):
         self.PollingTimer.stop()
@@ -151,7 +158,7 @@ class MainWin(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def on_actionconnect_ASCOM_triggered(self):
-        self.Interface = ASCOM.ASCOM()
+        self.Interface = ASCOM.ASCOM(showDebugMessages=self.showDebugMessages)
         self.Interface.open()
         if self.Interface.is_open():
             self.update_GuiOpenInterface()
@@ -162,10 +169,9 @@ class MainWin(QtWidgets.QMainWindow):
     @QtCore.pyqtSlot()
     def on_actionconnect_UART_triggered(self):
         Parameter = {k: self.Settings.value(k) for k in self.Settings.allKeys()}
-        self.Interface = UART.UART(Parameter=Parameter)
+        self.Interface = UART.UART(Parameter=Parameter, showDebugMessages=self.showDebugMessages)
         self.Interface.open()
         if self.Interface.is_open():
-            print("DBG: UART is open")
             Parameter = self.Interface.get_Parameter()
             for k, v in Parameter.items():
                 self.Settings.setValue(k, v)
@@ -221,11 +227,10 @@ class MainWin(QtWidgets.QMainWindow):
             Line1 = LcdText[0:16]
             Line2 = LcdText[16:]
             self.ui.plainTextEdit_LCD.setPlainText(f'{Line1}\n{Line2}')
-            # print(f'{Unknown}: >{Line1}< >{Line2}<')
             # print(", ".join([f'{ord(c):02X}' for c in LcdText]))
             # print(bytes(LcdText, 'utf-8'))
         else:
-            print('DBG: no response from get_LCD.')
+            self.dbgMsg('No response from get_LCD.')
         if self.ui.actionpoll.isChecked():
             if not self.PollingTimer.isActive():
                 self.PollingTimer.setInterval(LCD_polling_time)
@@ -247,6 +252,11 @@ class MainWin(QtWidgets.QMainWindow):
 
 # Start Qt event loop unless running in interactive mode.
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="remote control for MEADE AutoSTAR #497")
+    parser.add_argument("-d", "--debug", action="store_true",
+                        help="enable debug messages")
+    args = parser.parse_args()
     # build application
     App = QtWidgets.QApplication(sys.argv)
     App.setOrganizationName("GeierSoft")
@@ -284,7 +294,7 @@ def main():
     else:
         pass
     #
-    MainWindow = MainWin()
+    MainWindow = MainWin(showDebugMessages=args.debug)
     # MainWindow.resize(1400, 900)
     MainWindow.show()
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
