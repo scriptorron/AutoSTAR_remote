@@ -5,15 +5,23 @@ It requires the Meade ASCOM driver.
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
-import win32com.client
+
+try:
+    import ASCOM
+except ImportError:
+    has_ASCOM = False
+else:
+    has_ASCOM = True
+
+import UART
 
 import AutoSTAR_remote_ui
 
-version = "V1.0.1"
+version = "V1.1.0"
 
-theme_selection = "Dark" # "Dark", "Light"
-LCD_polling_time = 1000 # milliseconds
-LCD_earlyUpdate_time = 200 # milliseconds
+theme_selection = "Dark"  # "Dark", "Light"
+LCD_polling_time = 1000  # milliseconds
+LCD_earlyUpdate_time = 50  # milliseconds
 
 """
 By watching the RS232 communication of the AutoStart Suit telescope control I found the following commands: 
@@ -49,13 +57,27 @@ By watching the RS232 communication of the AutoStart Suit telescope control I fo
   + ? :EK63#
 """
 
+"""
+How the ASCOM driver sets time and date:
+
+21:06:26.686 UTCDate                   Set - 11.22.22 20:06:26
+21:06:26.686 SendString                Transmitting #:GG#
+21:06:26.704 SendString                Received -01
+21:06:26.708 SendChars                 Transmitting #:SL21:06:26#   <-- 21:06
+21:06:26.744 SendChars                 Received 1
+21:06:26.744 SendChars                 Transmitting #:SC11.22.22#   <-- 22. Nov 2022
+21:06:26.962 SendChars                 Received 1
+"""
+
+
 class MainWin(QtWidgets.QMainWindow):
     """
     AutoSTAR_remote main window.
     """
 
-    def __init__(self):
+    def __init__(self, showDebugMessages=False):
         super(MainWin, self).__init__()
+        self.showDebugMessages = showDebugMessages
         self.ui = AutoSTAR_remote_ui.Ui_MainWindow()
         self.ui.setupUi(self)
         self.setWindowTitle(f'AutoSTAR_remote {version}')
@@ -63,9 +85,12 @@ class MainWin(QtWidgets.QMainWindow):
         font.setStyleHint(QtGui.QFont.TypeWriter)
         font.setPointSizeF(10)
         self.ui.plainTextEdit_LCD.setFont(font)
-        # states
-        self.Telescope = None
-        self.TelescopeName = ""
+        self.ui.actionconnect_ASCOM.setEnabled(has_ASCOM)
+        # communication interface
+        self.Interface = None
+        # persistent settings
+        self.Settings = QtCore.QSettings()
+        self.dbgMsg(f'QSettings file: {self.Settings.fileName()}')
         # LCD polling timer
         self.PollingTimer = QtCore.QTimer()
         self.PollingTimer.setSingleShot(True)
@@ -105,70 +130,78 @@ class MainWin(QtWidgets.QMainWindow):
         self.ui.pushButton_FocOut.pressed.connect(lambda: self.sendCommandBlind("F+"))
         self.ui.pushButton_FocOut.released.connect(lambda: self.sendCommandBlind("FQ"))
 
+    def dbgMsg(self, msg):
+        if self.showDebugMessages:
+            print(f'DEBUG: {msg}')
 
     @QtCore.pyqtSlot()
     def closeEvent(self, event):
         self.PollingTimer.stop()
-        if self.Telescope is not None:
-            if self.Telescope.Connected:
-                self.Telescope.Connected = False
+        if self.Interface is not None:
+            self.Interface.close()
         # proceed with close
         event.accept()
 
+    def update_GuiOpenInterface(self):
+        """ update GUI elements after opening interface
+        """
+        self.ui.statusbar.showMessage(self.Interface.Name)
+        self.ui.actionconnect_ASCOM.setEnabled(False)
+        self.ui.actionconnect_UART.setEnabled(False)
+        self.ui.actiondisconnect.setEnabled(True)
+        self.ui.centralwidget.setEnabled(True)
+        if self.ui.actionpoll.isChecked():
+            if not self.PollingTimer.isActive():
+                self.PollingTimer.setInterval(LCD_earlyUpdate_time)
+                self.PollingTimer.start()
+        self.ui.actionupdate_now.setEnabled(True)
+
     @QtCore.pyqtSlot()
-    def on_actionconnect_triggered(self):
-        try:
-            Chooser  = win32com.client.Dispatch("ASCOM.Utilities.Chooser")
-        except win32com.client.pywintypes.com_error:
-            QtWidgets.QMessageBox.critical(None, "Can not call ASCOM!",
-                                           f"Is ASCOM installed?")
-            return
-        Chooser.DeviceType = 'Telescope'
-        self.TelescopeName = Chooser.Choose(None)
-        self.ui.statusbar.showMessage(self.TelescopeName)
-        self.Telescope = win32com.client.Dispatch(self.TelescopeName)
-        self.Telescope.Connected = True
-        if not self.Telescope.Connected:
-            QtWidgets.QMessageBox.critical(None, "Can not connect to telescope!",
-                                           f"Please check connection to\n{self.TelescopeName}.\nMaybe it is already in use.")
+    def on_actionconnect_ASCOM_triggered(self):
+        self.Interface = ASCOM.ASCOM(showDebugMessages=self.showDebugMessages)
+        self.Interface.open()
+        if self.Interface.is_open():
+            self.update_GuiOpenInterface()
         else:
-            self.ui.actionconnect.setEnabled(False)
-            self.ui.actiondisconnect.setEnabled(True)
-            self.ui.centralwidget.setEnabled(True)
-            if self.ui.actionpoll.isChecked():
-                if not self.PollingTimer.isActive():
-                    self.PollingTimer.setInterval(LCD_earlyUpdate_time)
-                    self.PollingTimer.start()
-            self.ui.actionupdate_now.setEnabled(True)
+            self.Interface.close()
+            self.Interface = None
+
+    @QtCore.pyqtSlot()
+    def on_actionconnect_UART_triggered(self):
+        Parameter = {k: self.Settings.value(k) for k in self.Settings.allKeys()}
+        self.Interface = UART.UART(Parameter=Parameter, showDebugMessages=self.showDebugMessages)
+        self.Interface.open()
+        if self.Interface.is_open():
+            Parameter = self.Interface.get_Parameter()
+            for k, v in Parameter.items():
+                self.Settings.setValue(k, v)
+            self.Settings.sync()
+            self.update_GuiOpenInterface()
+        else:
+            self.Interface.close()
+            self.Interface = None
 
     @QtCore.pyqtSlot()
     def on_actiondisconnect_triggered(self):
         self.PollingTimer.stop()
-        if self.Telescope is not None:
-            if self.Telescope.Connected:
-                self.Telescope.Connected = False
-                self.ui.actionconnect.setEnabled(True)
-                self.ui.actiondisconnect.setEnabled(False)
-                self.ui.centralwidget.setEnabled(False)
-                self.ui.actionupdate_now.setEnabled(False)
-
-    def sendAction(self, param):
-        if self.Telescope is not None:
-            if self.Telescope.Connected:
-                return self.Telescope.Action("handbox", param)
-        return None
+        if self.Interface is not None:
+            Parameter = self.Interface.get_Parameter()
+            for k, v in Parameter.items():
+                self.Settings.setValue(k, v)
+            self.Settings.sync()
+            self.Interface.close()
+            self.Interface = None
+        self.ui.actionconnect_ASCOM.setEnabled(has_ASCOM)
+        self.ui.actionconnect_UART.setEnabled(True)
+        self.ui.actiondisconnect.setEnabled(False)
+        self.ui.centralwidget.setEnabled(False)
+        self.ui.actionupdate_now.setEnabled(False)
 
     def sendCommandBlind(self, cmd):
-        if self.Telescope is not None:
-            if self.Telescope.Connected:
-                try:
-                    ret = self.Telescope.CommandBlind(cmd, False)
-                except win32com.client.pywintypes.com_error as e:
-                    print(f'sendCommandBlind: {e}')
-                    return None
-                else:
-                    return ret
-        return None
+        if self.Interface is not None:
+            return self.Interface.sendCommandBlind(cmd)
+        else:
+            return None
 
     def buttonAction(self, cmd, long_cmd=None):
         """
@@ -186,46 +219,18 @@ class MainWin(QtWidgets.QMainWindow):
         self.PollingTimer.setInterval(LCD_earlyUpdate_time)
         self.PollingTimer.start()
 
-    # The :ED# command sends the LCD contents, coded with the char table of the SED1233 LCD controller.
-    # For any reason the COM interface or the win32com transforms this into unicode. Unfortunately the
-    # special characters of the SED1233 controller get mapped to the wrong unicode. Here we fix this
-    # with a translation table:
-    CharacterTranslationTable = {
-        0x0d: ord('\n'),
-        #0x2020: ord(' '),
-        0xDF: ord('°'),
-        0x7E: 0x2192, #ord('>'),
-        0x7F: 0x2190, #ord('<'),
-        0x18: 0x2191, #ord('^'),
-        0x19: 0x2193, #ord('v'),
-        # bar graph symbols
-        0x5F: 0x2582,
-        0x81: 0x2583,
-        0x201A: 0x2584, # raw: 0x82
-        0x0192: 0x2585, # raw: 0x83
-        0x201E: 0x2586, # raw: 0x84
-        0x2026: 0x2587, # raw: 0x85
-        0x2020: 0x2588, # raw: 0x86
-    }
-
     def updateLCD(self):
-        try:
-            LcdText = self.Telescope.CommandString("ED", False)
-        except win32com.client.pywintypes.com_error as e:
-            # Sometimes the handbox needs long time for calculations and does not
-            # send the LCD contents bfore the ASCOM driver trows a timeout exception.
-            # Here we catch these timeout exceptions.
-            print(f'updateLCD: {e}')
-            LcdText = None
+        LcdText = None
+        if self.Interface is not None:
+            LcdText = self.Interface.get_LCD()
         if LcdText is not None:
-            LcdText = LcdText.translate(self.CharacterTranslationTable)
-            Unknown = ord(LcdText[0])
-            Line1 = LcdText[1:17]
-            Line2 = LcdText[17:]
+            Line1 = LcdText[0:16]
+            Line2 = LcdText[16:]
             self.ui.plainTextEdit_LCD.setPlainText(f'{Line1}\n{Line2}')
-            #print(f'{Unknown}: >{Line1}< >{Line2}<')
-            #print(", ".join([f'{ord(c):02X}' for c in LcdText]))
-            #print(bytes(LcdText, 'utf-8'))
+            # print(", ".join([f'{ord(c):02X}' for c in LcdText]))
+            # print(bytes(LcdText, 'utf-8'))
+        else:
+            self.dbgMsg('No response from get_LCD.')
         if self.ui.actionpoll.isChecked():
             if not self.PollingTimer.isActive():
                 self.PollingTimer.setInterval(LCD_polling_time)
@@ -245,15 +250,20 @@ class MainWin(QtWidgets.QMainWindow):
             self.PollingTimer.stop()
 
 
-## Start Qt event loop unless running in interactive mode.
+# Start Qt event loop unless running in interactive mode.
 def main():
+    import argparse
+    parser = argparse.ArgumentParser(description="remote control for MEADE AutoSTAR #497")
+    parser.add_argument("-d", "--debug", action="store_true",
+                        help="enable debug messages")
+    args = parser.parse_args()
     # build application
     App = QtWidgets.QApplication(sys.argv)
     App.setOrganizationName("GeierSoft")
     App.setOrganizationDomain("Astro")
     App.setApplicationName("AutoSTAR_remote")
     #
-    # stolen from https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
+    # copied from https://stackoverflow.com/questions/48256772/dark-theme-for-qt-widgets
     if theme_selection == 'Dark':
         App.setStyle("Fusion")
         #
@@ -284,11 +294,10 @@ def main():
     else:
         pass
     #
-    MainWindow = MainWin()
-    #MainWindow.resize(1400, 900)
+    MainWindow = MainWin(showDebugMessages=args.debug)
+    # MainWindow.resize(1400, 900)
     MainWindow.show()
     if (sys.flags.interactive != 1) or not hasattr(QtCore, 'PYQT_VERSION'):
-        #QtGui.QApplication.instance().exec_()
         sys.exit(App.exec_())
 
 

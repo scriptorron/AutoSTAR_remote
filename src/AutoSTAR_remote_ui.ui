@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>315</width>
-    <height>475</height>
+    <height>503</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -282,7 +282,8 @@
     <property name="title">
      <string>Telescope</string>
     </property>
-    <addaction name="actionconnect"/>
+    <addaction name="actionconnect_ASCOM"/>
+    <addaction name="actionconnect_UART"/>
     <addaction name="actiondisconnect"/>
    </widget>
    <widget class="QMenu" name="menuDisplay">
@@ -301,12 +302,12 @@
     <string>select</string>
    </property>
   </action>
-  <action name="actionconnect">
+  <action name="actionconnect_ASCOM">
    <property name="enabled">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>connect</string>
+    <string>connect ASCOM</string>
    </property>
   </action>
   <action name="actiondisconnect">
@@ -334,6 +335,11 @@
    </property>
    <property name="text">
     <string>update now</string>
+   </property>
+  </action>
+  <action name="actionconnect_UART">
+   <property name="text">
+    <string>connect UART</string>
    </property>
   </action>
  </widget>

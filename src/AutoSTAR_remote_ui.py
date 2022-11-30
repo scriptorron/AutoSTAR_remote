@@ -11,7 +11,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(315, 475)
+        MainWindow.resize(315, 503)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setEnabled(False)
         self.centralwidget.setObjectName("centralwidget")
@@ -111,9 +111,9 @@ class Ui_MainWindow(object):
         MainWindow.setStatusBar(self.statusbar)
         self.actionselect = QtWidgets.QAction(MainWindow)
         self.actionselect.setObjectName("actionselect")
-        self.actionconnect = QtWidgets.QAction(MainWindow)
-        self.actionconnect.setEnabled(True)
-        self.actionconnect.setObjectName("actionconnect")
+        self.actionconnect_ASCOM = QtWidgets.QAction(MainWindow)
+        self.actionconnect_ASCOM.setEnabled(True)
+        self.actionconnect_ASCOM.setObjectName("actionconnect_ASCOM")
         self.actiondisconnect = QtWidgets.QAction(MainWindow)
         self.actiondisconnect.setEnabled(False)
         self.actiondisconnect.setObjectName("actiondisconnect")
@@ -124,7 +124,10 @@ class Ui_MainWindow(object):
         self.actionupdate_now = QtWidgets.QAction(MainWindow)
         self.actionupdate_now.setEnabled(False)
         self.actionupdate_now.setObjectName("actionupdate_now")
-        self.menuTelescope.addAction(self.actionconnect)
+        self.actionconnect_UART = QtWidgets.QAction(MainWindow)
+        self.actionconnect_UART.setObjectName("actionconnect_UART")
+        self.menuTelescope.addAction(self.actionconnect_ASCOM)
+        self.menuTelescope.addAction(self.actionconnect_UART)
         self.menuTelescope.addAction(self.actiondisconnect)
         self.menuDisplay.addAction(self.actionpoll)
         self.menuDisplay.addAction(self.actionupdate_now)
@@ -186,10 +189,11 @@ class Ui_MainWindow(object):
         self.menuTelescope.setTitle(_translate("MainWindow", "Telescope"))
         self.menuDisplay.setTitle(_translate("MainWindow", "LCD"))
         self.actionselect.setText(_translate("MainWindow", "select"))
-        self.actionconnect.setText(_translate("MainWindow", "connect"))
+        self.actionconnect_ASCOM.setText(_translate("MainWindow", "connect ASCOM"))
         self.actiondisconnect.setText(_translate("MainWindow", "disconnect"))
         self.actionpoll.setText(_translate("MainWindow", "poll"))
         self.actionupdate_now.setText(_translate("MainWindow", "update now"))
+        self.actionconnect_UART.setText(_translate("MainWindow", "connect UART"))
 
 
 if __name__ == "__main__":
