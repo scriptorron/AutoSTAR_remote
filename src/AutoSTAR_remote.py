@@ -57,6 +57,16 @@ By watching the RS232 communication of the AutoStart Suit telescope control I fo
   + ? :EK63#
 """
 
+"""
+21:06:26.686 UTCDate                   Set - 11.22.22 20:06:26
+21:06:26.686 SendString                Transmitting #:GG#
+21:06:26.704 SendString                Received -01
+21:06:26.708 SendChars                 Transmitting #:SL21:06:26#   <-- 21:06
+21:06:26.744 SendChars                 Received 1
+21:06:26.744 SendChars                 Transmitting #:SC11.22.22#   <-- 22. Nov 2022
+21:06:26.962 SendChars                 Received 1
+"""
+
 
 class MainWin(QtWidgets.QMainWindow):
     """
@@ -156,6 +166,10 @@ class MainWin(QtWidgets.QMainWindow):
         self.Interface.open()
         if self.Interface.is_open():
             print("DBG: UART is open")
+            Parameter = self.Interface.get_Parameter()
+            for k, v in Parameter.items():
+                self.Settings.setValue(k, v)
+            self.Settings.sync()
             self.update_GuiOpenInterface()
         else:
             self.Interface.close()
@@ -199,41 +213,19 @@ class MainWin(QtWidgets.QMainWindow):
         self.PollingTimer.setInterval(LCD_earlyUpdate_time)
         self.PollingTimer.start()
 
-    # The :ED# command sends the LCD contents, coded with the char table of the SED1233 LCD controller.
-    # For any reason the COM interface or the win32com transforms this into unicode. Unfortunately the
-    # special characters of the SED1233 controller get mapped to the wrong unicode. Here we fix this
-    # with a translation table:
-    CharacterTranslationTable = {
-        0x0d: ord('\n'),
-        # 0x2020: ord(' '),
-        0xDF: ord('°'),
-        0x7E: 0x2192,  # ord('>'),
-        0x7F: 0x2190,  # ord('<'),
-        0x18: 0x2191,  # ord('^'),
-        0x19: 0x2193,  # ord('v'),
-        # bar graph symbols
-        0x5F: 0x2582,
-        0x81: 0x2583,
-        0x201A: 0x2584,  # raw: 0x82
-        0x0192: 0x2585,  # raw: 0x83
-        0x201E: 0x2586,  # raw: 0x84
-        0x2026: 0x2587,  # raw: 0x85
-        0x2020: 0x2588,  # raw: 0x86
-    }
-
     def updateLCD(self):
         LcdText = None
         if self.Interface is not None:
-            LcdText = self.Interface.sendCommandString("ED")
+            LcdText = self.Interface.get_LCD()
         if LcdText is not None:
-            LcdText = LcdText.translate(self.CharacterTranslationTable)
-            Unknown = ord(LcdText[0])
-            Line1 = LcdText[1:17]
-            Line2 = LcdText[17:]
+            Line1 = LcdText[0:16]
+            Line2 = LcdText[16:]
             self.ui.plainTextEdit_LCD.setPlainText(f'{Line1}\n{Line2}')
             # print(f'{Unknown}: >{Line1}< >{Line2}<')
             # print(", ".join([f'{ord(c):02X}' for c in LcdText]))
             # print(bytes(LcdText, 'utf-8'))
+        else:
+            print('DBG: no response from get_LCD.')
         if self.ui.actionpoll.isChecked():
             if not self.PollingTimer.isActive():
                 self.PollingTimer.setInterval(LCD_polling_time)

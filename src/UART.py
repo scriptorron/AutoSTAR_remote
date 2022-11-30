@@ -5,6 +5,7 @@ UART interface for AutoSTAR_remote
 from PyQt5 import QtCore, QtGui, QtWidgets
 import sys
 import os
+import datetime
 import serial
 import serial.tools.list_ports
 
@@ -78,7 +79,7 @@ class UART(QtWidgets.QDialog):
 
     def open(self, timeout=2.0, write_timeout=None, inter_byte_timeout=None, exclusive=False):
         ret = self.exec_()
-        if ret == self.Accepted:
+        if (ret == self.Accepted) and (len(self.KnownPorts) > 0):
             self.Name = self.ui.comboBox_ComPort.currentText()
             port = self.KnownPorts[self.ui.comboBox_ComPort.currentIndex()]["port"]
             baudrate = int(self.ui.comboBox_Speed.currentText())
@@ -107,6 +108,29 @@ class UART(QtWidgets.QDialog):
             except serial.SerialException as e:
                 QtWidgets.QMessageBox.critical(None, "Can not open UART port!", f"{e}")
                 self.PortHandle = None
+            self.initializeCommunication()
+
+    def initializeCommunication(self):
+        if self.is_open():
+            # clear the buffer
+            self.PortHandle.write('#'.encode("ascii"))
+            # Attempting manual bypass of prompts
+            for i in range(10):
+                self.sendCommandBlind("EK9")
+                self.sendCommandString("ED")
+            # set date and time
+            if self.ui.checkBox_SetTimeDate.isChecked():
+                # TODO: make this aware of the daylight saving setting of the controller!
+                now = datetime.datetime.now()
+                time = now.strftime("%H:%M:%S")
+                self.PortHandle.write(f'#:SL{time}#'.encode("ascii"))
+                Response = self.PortHandle.read(size=1)
+                print(f'DBG: #:SL{time}# --> {Response}')
+                # MM/DD/YY
+                date = now.strftime("%m/%d/%y")
+                self.PortHandle.write(f'#:SC{date}#'.encode("ascii"))
+                Response = self.PortHandle.read(size=1)
+                print(f'DBG: #:SC{date}# --> {Response}')
 
     def is_open(self):
         if self.PortHandle is not None:
@@ -125,17 +149,40 @@ class UART(QtWidgets.QDialog):
             MeadeCmd = f'#:{cmd}#'.encode("ascii")
             self.PortHandle.write(MeadeCmd)
 
-    def sendCommandString(self, cmd):
+    # The :ED# command sends the LCD contents, coded with the char table of the SED1233 LCD controller.
+    # For any reason the COM interface or the win32com transforms this into unicode. Unfortunately the
+    # special characters of the SED1233 controller get mapped to the wrong unicode. Here we fix this
+    # with a translation table:
+    CharacterTranslationTable = {
+        0x0d: ord('\n'),
+        # 0x2020: ord(' '),
+        0xDF: ord('°'),
+        0x7E: 0x2192,  # ord('>'),
+        0x7F: 0x2190,  # ord('<'),
+        0x18: 0x2191,  # ord('^'),
+        0x19: 0x2193,  # ord('v'),
+        # bar graph symbols
+        0x5F: 0x2582,
+        0x81: 0x2583,
+        0x82: 0x2584,  # raw: 0x82
+        0x83: 0x2585,  # raw: 0x83
+        0x84: 0x2586,  # raw: 0x84
+        0x85: 0x2587,  # raw: 0x85
+        0x86: 0x2588,  # raw: 0x86
+    }
+
+    def get_LCD(self):
         if self.is_open():
-            MeadeCmd = f'#:{cmd}#'.encode("ascii")
-            print(f'sendCommandString command: {MeadeCmd}')
+            MeadeCmd = b'#:ED#'
+            #print(f'sendCommandString command: {MeadeCmd}')
             self.PortHandle.write(MeadeCmd)
-            Response = self.PortHandle.read_until("#".encode("ascii"))
-            print(f'sendCommandString response: {Response}')
-            Response = Response.rstrip("#".encode("ascii"))
-            Response = Response.decode("utf-16")
-            return Response
+            Response = self.PortHandle.read_until(b"#")
+            print(f'DBG: get_LCD response: {Response}')
+            Response = Response[1:].rstrip(b"#")
+            Response = Response.decode("latin-1")
+            return Response.translate(self.CharacterTranslationTable)
         return None
+
 
 
 if __name__ == '__main__':
