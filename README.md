@@ -14,6 +14,9 @@ You can change the serial port parameters when connecting with UART. Default par
 
 When connecting with the serial port you have the option to set the time and date of the AutoSTAR to the computer clock. This feature is not fully tested. Especially the daylight saving may be wrong. Please check the AutoSTAR settings if you see strange errors when doing GOTO to an object.
 
+Furthermore, I observed that skipping the initial telescope setup and setting time/date automatically leaded to
+issues with pulse guiding.
+
 The compiled binary just needs to be unpacked. No installation and no Python is needed. ASCOM driver https://bitbucket.org/cjdskunkworks/meadeautostar497 must be installed and off course you need to connect your #497 AutoSTAR with your computer.
 
 For running the Python source code you need the following packages:

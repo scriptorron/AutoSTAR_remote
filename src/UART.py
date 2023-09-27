@@ -31,7 +31,8 @@ class UART(QtWidgets.QDialog):
         self.ui.checkBox_RtsCts.setChecked(False)
         self.ui.checkBox_DsrDtr.setChecked(False)
         self.ui.checkBox_XonXoff.setChecked(False)
-        self.ui.checkBox_SetTimeDate.setChecked(True)
+        self.ui.checkBox_SetTimeDate.setChecked(False)
+        self.ui.checkBox_skipInitialSetup.setChecked(False)
         # set defaults
         self.set_Parameter(Parameter)
         # no port opened
@@ -55,6 +56,7 @@ class UART(QtWidgets.QDialog):
             "rtscts": str(self.ui.checkBox_RtsCts.isChecked()),
             "dsrdtr": str(self.ui.checkBox_DsrDtr.isChecked()),
             "setTimeDate": str(self.ui.checkBox_SetTimeDate.isChecked()),
+            "skipInitialSetup": str(self.ui.checkBox_skipInitialSetup.isChecked()),
         }
         return Parameter
 
@@ -75,7 +77,8 @@ class UART(QtWidgets.QDialog):
         self.ui.checkBox_XonXoff.setChecked(Parameter.get("xonxoff", "") == "True")
         self.ui.checkBox_RtsCts.setChecked(Parameter.get("rtscts", "") == "True")
         self.ui.checkBox_DsrDtr.setChecked(Parameter.get("dsrdtr", "") == "True")
-        self.ui.checkBox_SetTimeDate.setChecked(Parameter.get("setDateTime", "True") == "True")
+        self.ui.checkBox_SetTimeDate.setChecked(Parameter.get("setDateTime", "False") == "True")
+        self.ui.checkBox_skipInitialSetup.setChecked(Parameter.get("skipInitialSetup", "False") == "True")
 
     def find_Ports(self, include_links=False):
         iterator = sorted(serial.tools.list_ports.comports(include_links=include_links))
@@ -121,21 +124,22 @@ class UART(QtWidgets.QDialog):
             # clear the buffer
             self.PortHandle.write('#'.encode("ascii"))
             # Attempting manual bypass of prompts
-            for i in range(10):
-                self.sendCommandBlind("EK9")
-                self.get_LCD()
+            if self.ui.checkBox_skipInitialSetup.isChecked():
+                for i in range(10):
+                    self.sendCommandBlind("EK9")
+                    self.get_LCD()
             # set date and time
             if self.ui.checkBox_SetTimeDate.isChecked():
                 # TODO: make this aware of the daylight saving setting of the controller!
                 now = datetime.datetime.now()
                 time = now.strftime("%H:%M:%S")
-                cmd = f'#:SL{time}#'.encode("ascii")
+                cmd = f':SL{time}#'.encode("ascii")
                 self.PortHandle.write(cmd)
                 Response = self.PortHandle.read(size=1)
                 self.dbgMsg(f'{cmd} --> {Response}')
                 # MM/DD/YY
                 date = now.strftime("%m.%d.%y")
-                cmd = f'#:SC{date}#'.encode("ascii")
+                cmd = f':SC{date}#'.encode("ascii")
                 self.PortHandle.write(cmd)
                 Response = self.PortHandle.read(size=66)
                 self.dbgMsg(f'{cmd} --> {Response}')
@@ -154,7 +158,7 @@ class UART(QtWidgets.QDialog):
 
     def sendCommandBlind(self, cmd):
         if self.is_open():
-            MeadeCmd = f'#:{cmd}#'.encode("ascii")
+            MeadeCmd = f':{cmd}#'.encode("ascii")
             self.PortHandle.write(MeadeCmd)
             self.PortHandle.flush()
             self.dbgMsg(f'sendCommandBlind: {MeadeCmd}')
@@ -183,7 +187,7 @@ class UART(QtWidgets.QDialog):
 
     def get_LCD(self):
         if self.is_open():
-            MeadeCmd = b'#:ED#'
+            MeadeCmd = b':ED#'
             self.PortHandle.write(MeadeCmd)
             self.PortHandle.flush()
             Response = self.PortHandle.read_until(b"#")

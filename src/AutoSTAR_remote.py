@@ -17,7 +17,7 @@ import UART
 
 import AutoSTAR_remote_ui
 
-version = "V1.1.0"
+version = "V1.1.1"
 
 theme_selection = "Dark"  # "Dark", "Light"
 LCD_polling_time = 1000  # milliseconds
